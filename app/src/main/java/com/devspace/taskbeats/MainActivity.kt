@@ -2,13 +2,30 @@ package com.devspace.taskbeats
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.room.Room
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            TaskBeatDataBase::class.java, "database-task-beat"
+        ).build()
+    }
+
+    private val categoryDao: CategoryDao by lazy {
+        db.getCategoryDao()
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        insertDefaultCategory()
 
         val rvCategory = findViewById<RecyclerView>(R.id.rv_categories)
         val rvTask = findViewById<RecyclerView>(R.id.rv_tasks)
@@ -42,34 +59,23 @@ class MainActivity : AppCompatActivity() {
         rvTask.adapter = taskAdapter
         taskAdapter.submitList(tasks)
     }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun insertDefaultCategory(){
+        // o map converte o UiData(CategoryList Mock) em category entity
+        val categoriesEntity = categories.map {
+            CategoryEntity(
+                name = it.name,
+                isSelected = it.isSelected
+            )
+        }
+        GlobalScope.launch(Dispatchers.IO) {
+            //TODO: Coroutines auxiliary o loading em background dos dados da tela.
+            categoryDao.insetAll(categoriesEntity)
+        }
+    }
 }
 
-val categories = listOf(
-    CategoryUiData(
-        name = "ALL",
-        isSelected = false
-    ),
-    CategoryUiData(
-        name = "STUDY",
-        isSelected = false
-    ),
-    CategoryUiData(
-        name = "WORK",
-        isSelected = false
-    ),
-    CategoryUiData(
-        name = "WELLNESS",
-        isSelected = false
-    ),
-    CategoryUiData(
-        name = "HOME",
-        isSelected = false
-    ),
-    CategoryUiData(
-        name = "HEALTH",
-        isSelected = false
-    ),
-)
 
 val tasks = listOf(
     TaskUiData(
