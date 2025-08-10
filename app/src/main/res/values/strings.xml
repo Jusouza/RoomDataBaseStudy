@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">TaskBeats</string>
     <string name="home_title">Task Beat</string>
+    <string name="title_crate_category">Create category</string>
+    <string name="hint_create_category">Category name: e.g: Work</string>
+    <string name="btn_create">Create</string>
 </resources>
