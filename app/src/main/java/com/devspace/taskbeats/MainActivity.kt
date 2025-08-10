@@ -21,11 +21,17 @@ class MainActivity : AppCompatActivity() {
     private val categoryDao: CategoryDao by lazy {
         db.getCategoryDao()
     }
+
+    private val taskDao: TaskDao by lazy {
+        db.getTaskDao()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         insertDefaultCategory()
+        insertDefaultTask()
 
         val rvCategory = findViewById<RecyclerView>(R.id.rv_categories)
         val rvTask = findViewById<RecyclerView>(R.id.rv_tasks)
@@ -54,14 +60,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         rvCategory.adapter = categoryAdapter
-        categoryAdapter.submitList(categories)
+        getCategoriesFromDataBase(categoryAdapter)
 
         rvTask.adapter = taskAdapter
         taskAdapter.submitList(tasks)
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun insertDefaultCategory(){
+    private fun insertDefaultCategory() {
         // o map converte o UiData(CategoryList Mock) em category entity
         val categoriesEntity = categories.map {
             CategoryEntity(
@@ -74,52 +79,41 @@ class MainActivity : AppCompatActivity() {
             categoryDao.insetAll(categoriesEntity)
         }
     }
+
+
+    private fun insertDefaultTask() {
+        // o map converte o UiData(CategoryList Mock) em category entity
+        val tasksEntity = tasks.map {
+            TaskEntity(
+                name = it.name,
+                category = it.category
+            )
+        }
+        GlobalScope.launch(Dispatchers.IO) { // roda em background por nao rodar na main thread
+            //TODO: Coroutines auxiliary o loading em background dos dados da tela.
+            taskDao.insetAll(tasksEntity)
+        }
+    }
+
+    private fun getCategoriesFromDataBase(categoryListAdapter: CategoryListAdapter) {
+        GlobalScope.launch(Dispatchers.IO) {
+            // Aqui você busca do DAO uma lista de entidades (CategoryEntity), que é o modelo da camada de dados (representa a tabela no banco).
+            val categoriesFromdb: List<CategoryEntity> = categoryDao.getAll()
+            // Aqui você transforma (map) cada CategoryEntity em um CategoryUiData, que é o modelo da camada de apresentação/UI
+            val categoriesUiData = categoriesFromdb.map {
+                CategoryUiData(
+                    name = it.name,
+                    isSelected = it.isSelected
+                )
+            }
+            //Aqui você envia essa lista já convertida para o Adapter (que vai exibir na tela).
+            categoryListAdapter.submitList(categoriesUiData)
+        }
+    }
+
 }
 
+//val categories: List<CategoryUiData> = listOf()
+// Inserir as tasks na base de dados
 
-val tasks = listOf(
-    TaskUiData(
-        "Ler 10 páginas do livro atual",
-        "STUDY"
-    ),
-    TaskUiData(
-        "45 min de treino na academia",
-        "HEALTH"
-    ),
-    TaskUiData(
-        "Correr 5km",
-        "HEALTH"
-    ),
-    TaskUiData(
-        "Meditar por 10 min",
-        "WELLNESS"
-    ),
-    TaskUiData(
-        "Silêncio total por 5 min",
-        "WELLNESS"
-    ),
-    TaskUiData(
-        "Descer o livo",
-        "HOME"
-    ),
-    TaskUiData(
-        "Tirar caixas da garagem",
-        "HOME"
-    ),
-    TaskUiData(
-        "Lavar o carro",
-        "HOME"
-    ),
-    TaskUiData(
-        "Gravar aulas DevSpace",
-        "WORK"
-    ),
-    TaskUiData(
-        "Criar planejamento de vídeos da semana",
-        "WORK"
-    ),
-    TaskUiData(
-        "Soltar reels da semana",
-        "WORK"
-    ),
-)
+// val tasks: List<TaskUiData> = listOf()
