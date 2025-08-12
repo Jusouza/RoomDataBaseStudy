@@ -2,12 +2,9 @@ package com.devspace.taskbeats
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Button
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -18,6 +15,7 @@ class MainActivity : AppCompatActivity() {
     private var tasks = listOf<TaskUiData>()
 
     private val categoryAdapter = CategoryListAdapter()
+    private val taskAdapter by lazy { TaskListAdapter() }
 
     private val db by lazy {
         Room.databaseBuilder(
@@ -43,13 +41,11 @@ class MainActivity : AppCompatActivity() {
         val fabCreateTask = findViewById<FloatingActionButton>(R.id.fab_create_task)
 
         fabCreateTask.setOnClickListener{
-            val createTaskBottomSheet = CreateTaskBottomSheet(categories) { taskToBeCreated ->
-            }
-            createTaskBottomSheet.show(supportFragmentManager, "createTaskBottomSheet")
+            showCreateUpdateTaskBottomSheet()
         }
-
-        val taskAdapter = TaskListAdapter()
-
+        taskAdapter.setOnClickListener{ task ->
+            showCreateUpdateTaskBottomSheet(task)
+        }
 
         categoryAdapter.setOnClickListener { selected ->
             if (selected.name == "+") {
@@ -92,7 +88,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         rvTask.adapter = taskAdapter
-        getTasksFromDataBase(taskAdapter)
+
+
+
+        GlobalScope.launch(Dispatchers.IO) {
+        getTasksFromDataBase()
+        }
     }
 
 
@@ -121,20 +122,19 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun getTasksFromDataBase(adapter: TaskListAdapter) {
-        GlobalScope.launch(Dispatchers.IO) {
+    private fun getTasksFromDataBase() {
             val taskFromDb: List<TaskEntity> = taskDao.getAll()
-            val taskUiData = taskFromDb.map {
+            val taskUiData: List<TaskUiData> = taskFromDb.map {
                 TaskUiData(
+                    id = it.id,
                     name = it.name,
                     category = it.category
                 )
             }
             GlobalScope.launch(Dispatchers.Main) {
                 tasks = taskUiData
-                adapter.submitList(taskUiData)
+                taskAdapter.submitList(taskUiData)
             }
-        }
     }
 
     private fun insertCategory(categoryEntity: CategoryEntity){
@@ -142,6 +142,45 @@ class MainActivity : AppCompatActivity() {
             categoryDao.inset(categoryEntity)
             getCategoriesFromDataBase()
         }
+    }
+
+    private fun insertTask(taskEntity: TaskEntity){
+        GlobalScope.launch(Dispatchers.IO) {
+           taskDao.insert(taskEntity)
+            getTasksFromDataBase()
+        }
+    }
+
+    private fun updateTask(taskEntity: TaskEntity){
+        GlobalScope.launch(Dispatchers.IO) {
+            taskDao.update(taskEntity)
+            getTasksFromDataBase()
+        }
+    }
+
+
+    private fun showCreateUpdateTaskBottomSheet(taskUiData: TaskUiData? = null){
+        val createTaskBottomSheet = CreateOrUpdateTaskBottomSheet(
+            task = taskUiData,
+            categoryList = categories,
+            onCreateClicked = { taskToBeCreated ->
+                val taskEntityToBeInsert = TaskEntity(
+                    name = taskToBeCreated.name,
+                    category = taskToBeCreated.category
+                )
+                insertTask(taskEntityToBeInsert)
+            },
+            onUpdateClicked = { taskToBeUpdated ->
+                val taskEntityToBeUpdated = TaskEntity(
+                    id = taskToBeUpdated.id,
+                    name = taskToBeUpdated.name,
+                    category = taskToBeUpdated.category
+                )
+                updateTask(taskEntityToBeUpdated)
+
+            }
+        )
+        createTaskBottomSheet.show(supportFragmentManager, "createTaskBottomSheet")
     }
 
 }
