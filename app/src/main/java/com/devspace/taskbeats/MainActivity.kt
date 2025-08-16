@@ -47,6 +47,23 @@ class MainActivity : AppCompatActivity() {
             showCreateUpdateTaskBottomSheet(task)
         }
 
+        categoryAdapter.setOnLongClickListener { categoryToBeDeleted ->
+            if (categoryToBeDeleted.name != " +") {
+                val title = this.getString(R.string.title_category_delete)
+                val description = this.getString(R.string.description_category_delete)
+                val btnText = this.getString(R.string.btn_delete)
+
+                showInfoDialog(title, description, btnText) {
+                    val categoryEntityToBeDeleted = CategoryEntity(
+                        categoryToBeDeleted.name,
+                        categoryToBeDeleted.isSelected
+                    )
+
+                    deleteCategory(categoryEntityToBeDeleted)
+                }
+            }
+        }
+
         categoryAdapter.setOnClickListener { selected ->
             if (selected.name == "+") {
                 val createCategoryBottomSheet = CreateCategoryBottomSheet { categoryName ->
@@ -89,13 +106,27 @@ class MainActivity : AppCompatActivity() {
 
         rvTask.adapter = taskAdapter
 
-
-
         GlobalScope.launch(Dispatchers.IO) {
         getTasksFromDataBase()
         }
     }
 
+    private fun showInfoDialog(
+        title: String,
+        description: String,
+        btnText: String,
+        onDeletedClicked: () -> Unit
+    ){
+        val infoBottomSheet = InfoBottomSheet(
+            title = title,
+            description = description,
+            btnText = btnText,
+            onDeleteClicked = onDeletedClicked
+        )
+
+        infoBottomSheet.show(supportFragmentManager, "infoBottomSheet")
+
+    }
 
     private fun getCategoriesFromDataBase() {
             // Aqui você busca do DAO uma lista de entidades (CategoryEntity), que é o modelo da camada de dados (representa a tabela no banco).
@@ -158,6 +189,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun deleteTask(taskEntity: TaskEntity){
+        GlobalScope.launch(Dispatchers.IO) {
+            taskDao.delete(taskEntity)
+            getTasksFromDataBase()
+        }
+    }
+
+    private fun deleteCategory(categoryEntity: CategoryEntity){
+        GlobalScope.launch(Dispatchers.IO) {
+            val taskToBeDeleted = taskDao.getAllByCategoryName(categoryEntity.name)
+            taskDao.deleteAll(taskToBeDeleted)
+            categoryDao.delete(categoryEntity)
+            getCategoriesFromDataBase()
+            getTasksFromDataBase()
+        }
+    }
 
     private fun showCreateUpdateTaskBottomSheet(taskUiData: TaskUiData? = null){
         val createTaskBottomSheet = CreateOrUpdateTaskBottomSheet(
@@ -177,6 +224,15 @@ class MainActivity : AppCompatActivity() {
                     category = taskToBeUpdated.category
                 )
                 updateTask(taskEntityToBeUpdated)
+
+            },
+            onDeleteClicked = { taskToBeDeleted ->
+                val taskEntityToBeDeleted = TaskEntity(
+                    id = taskToBeDeleted.id,
+                    name = taskToBeDeleted.name,
+                    category = taskToBeDeleted.category
+                )
+                deleteTask(taskEntityToBeDeleted)
 
             }
         )

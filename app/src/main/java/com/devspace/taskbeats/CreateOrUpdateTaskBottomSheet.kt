@@ -1,6 +1,7 @@
 package com.devspace.taskbeats
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.Spinner
 import android.widget.TextView
+import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
@@ -17,7 +19,8 @@ class CreateOrUpdateTaskBottomSheet(
     private val categoryList: List<CategoryUiData>,
     private val task: TaskUiData? = null,
     private val onCreateClicked: (TaskUiData) -> Unit,
-    private val onUpdateClicked: (TaskUiData) -> Unit
+    private val onUpdateClicked: (TaskUiData) -> Unit,
+    private val onDeleteClicked: (TaskUiData) -> Unit
 ) : BottomSheetDialogFragment() {
 
     override fun onCreateView(
@@ -28,9 +31,11 @@ class CreateOrUpdateTaskBottomSheet(
         val view = inflater.inflate(R.layout.create_or_update_task_bottom_sheet, container, false)
 
         val tvTitle = view.findViewById<TextView>(R.id.tv_title)
-        val btnCreate = view.findViewById<Button>(R.id.btn_task_create)
+        val btnCreate = view.findViewById<Button>(R.id.btn_task_create_or_update)
+        val btnDelete = view.findViewById<Button>(R.id.btn_task_delete)
         val tieTaskName = view.findViewById<TextInputEditText>(R.id.tie_task_name)
         val spinner: Spinner = view.findViewById(R.id.sp_category_list)
+
         var taskCategory : String? = null
         val categoryStr: List<String> = categoryList.map { it.name }
 
@@ -58,9 +63,11 @@ class CreateOrUpdateTaskBottomSheet(
         }
 
         if(task == null){
+            btnDelete.isVisible = false
             tvTitle.setText(R.string.title_crate_task)
             btnCreate.setText(R.string.btn_create)
-        } else{
+        } else {
+            btnDelete.isVisible = true
             tvTitle.setText(R.string.title_update_task)
             btnCreate.setText(R.string.btn_update)
             tieTaskName.setText(task.name)
@@ -69,11 +76,18 @@ class CreateOrUpdateTaskBottomSheet(
             spinner.setSelection(index)
         }
 
-
+        btnDelete.setOnClickListener {
+            if (task != null){
+                onDeleteClicked.invoke(task)
+                dismiss()
+            } else {
+                Log.d("juliana", "NAO EXISTE TAREFAAAAA")
+            }
+        }
 
         btnCreate.setOnClickListener {
-            val name = tieTaskName.text.toString()
-            if(taskCategory != null){
+            val name = tieTaskName.text.toString().trim()
+            if(taskCategory != null && name.isNotEmpty()){
                 if(task == null){
                     onCreateClicked.invoke(
                         TaskUiData(
@@ -91,7 +105,6 @@ class CreateOrUpdateTaskBottomSheet(
                         )
                     )
                 }
-
                 dismiss()
             } else{
                 Snackbar.make(btnCreate, "Please select a category", Snackbar.LENGTH_LONG).show()

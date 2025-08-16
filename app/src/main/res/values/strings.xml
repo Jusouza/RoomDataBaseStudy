@@ -8,4 +8,7 @@
     <string name="hint_create_task">Task name: e.g: Study Android</string>
     <string name="btn_create">Create</string>
     <string name="btn_update">Update</string>
+    <string name="btn_delete">Delete</string>
+    <string name="title_category_delete">Important</string>
+    <string name="description_category_delete">By deleting a category you will delete all tasks with this category, are you sure?</string>
 </resources>
