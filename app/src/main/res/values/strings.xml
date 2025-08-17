@@ -11,4 +11,6 @@
     <string name="btn_delete">Delete</string>
     <string name="title_category_delete">Important</string>
     <string name="description_category_delete">By deleting a category you will delete all tasks with this category, are you sure?</string>
+    <string name="title_empty_category">No category found!</string>
+    <string name="description_empty_category">Please create a new one</string>
 </resources>
